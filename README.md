@@ -17,23 +17,38 @@
 
 1. **创建设备**
 先创建产品
-![alt text](局部截取_20260427_201050.png)
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%88%9B%E5%BB%BA%E4%BA%A7%E5%93%81.png" width="100%" height="100%" alt="创建产品">
+</div>
+
 然后再创建设备
-![alt text](局部截取_20260427_201141.png)
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%88%9B%E5%BB%BA%E8%AE%BE%E5%A4%87.png" width="100%" height="100%" alt="创建设备">
+</div>
 
 > **关键参数**
 - Product_ID：产品 ID
-![alt text](局部截取_20260427_201642.png)
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E4%BA%A7%E5%93%81ID.png" width="100%" height="100%" alt="产品 ID">
+</div>
 - Device_ID：设备 ID（你创建设备时起的名字）
-![alt text](局部截取_20260427_201743.png)
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E8%AE%BE%E5%A4%87ID.png" width="100%" height="100%" alt="设备 ID">
+</div>
 - 设备密钥
-![alt text](局部截取_20260427_202325.png)
-![alt text](局部截取_20260427_202416.png)
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E8%BF%9B%E5%85%A5%E8%AE%BE%E5%A4%87%E8%AF%A6%E6%83%85.png" width="100%" height="100%" alt="进入设备详情">
+</div>
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%AF%86%E9%92%A5%E4%BF%A1%E6%81%AF.png" width="100%" height="100%" alt="密钥信息">
+</div>
 
 > **Token 的生成**
 
 利用[官方工具](https://open.iot.10086.cn/doc/aiot/fuse/detail/1487)生成，这里选设备级鉴权，把之前获得的 3 个关键参数填写到对应位置。需要说明的是`et`怎么获取，`et`是一个未来时间的时间戳，你可以使用一个时间戳转换网站获取，记住，一定要是未来的时间，到 2050 年都没事。(下图截取自 ONENET 官方文档)
-![alt text](局部截取_20260427_202824.png)
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E8%8E%B7%E5%8F%96token.png" width="100%" height="100%" alt="获取 Token">
+</div>
 
 生成以后可以把这些参数复制到程序中`OTA.h`文件的宏定义中，如下所示：
 ```c
@@ -43,16 +58,22 @@
 ```
 2. **OTA 升级（增值服务）**
 创建升级包
-![alt text](局部截取_20260427_203350.png)
-![alt text](局部截取_20260427_203453.png)
-![alt text](局部截取_20260427_213834.png)
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%88%9B%E5%BB%BA%E5%8D%87%E7%BA%A7%E5%8C%85.png" width="100%" height="100%" alt="创建升级包">
+</div>
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E6%B7%BB%E5%8A%A0%E5%8D%87%E7%BA%A7%E5%8C%85.png" width="100%" height="100%" alt="添加升级包">
+</div>
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E8%B7%B3%E8%BF%87%E9%AA%8C%E8%AF%81.png" width="100%" height="100%" alt="跳过验证">
+</div>
 验证升级就直接跳过，没有必要执行这一步
 - **不管上传的是差分包还是全量包，在添加 OTA 升级任务的时候都要选择完整包，不用管差分包选项**
 - **本项目中这里的差分包或者全量包并不是由 keil5 直接生成的 bin 固件，而是经过打包后的固件包，具体如下小节所示**version-1.0
 ### 1.2 固件包的格式
 
 <div style="text-align: center;">
-    <img src="https://github.com/hanserisangel/Bootloader/blob/master/image/OTAremote.drawio.svg" width="100%" height="100%" alt="固件包格式">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/OTAremote.drawio.svg" width="100%" height="100%" alt="固件包格式">
 </div>
 
 说明：
@@ -99,12 +120,18 @@
 1.  **核心机制**：Cortex-M 内核的`SCB`（系统控制块）中，有一个名为`VTOR`（向量表偏移寄存器）的寄存器，它决定了中断向量表的基地址。
 2.  **实现方法**：在跳转前，将`VTOR`寄存器的值设置为目标 APP 的起始地址。这样，内核在响应中断时，就会从APP程序的起始位置去查找中断向量表，确保中断功能正常工作。
 
-![alt text](局部截取_20260423_194800.png)
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%90%91%E9%87%8F%E8%A1%A8%E6%98%A0%E5%B0%84.png" width="100%" height="100%" alt="向量表映射">
+</div>
 修改文件中的这个值，完成映射。这里我写 0x20000 是因为这是 A 分区的 APP 程序，根据第 5 节的分区表， A 分区在 128KB 开始的区域；如果是 B 分区的 APP程序，这里要填 0x80000，因为 B 分区在 128+384KB 开始的区域
 
 如果使用 keil5 直接下载 A/B 分区的应用程序，还需要修改下图的值
-![alt text](UV4.exe_20260423_195152.png)
-![alt text](UV4.exe_20260423_195234.png)
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/keil_App_A.png" width="100%" height="100%" alt="keil_APP_A">
+</div>
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/keil_App_B.png" width="100%" height="100%" alt="keil_APP_B">
+</div>
 
 ### 3.2 http 协议
 
@@ -239,13 +266,34 @@ APP 固件程序需要在程序一开始向 W25Q64 写入`OTA_Info.OTA_area = NO
 
 ## 4. demo 演示
 ### 4.1 版本号上报
-![alt text](局部截取_20260427_214027.png)
-### 4.2 巡检升级任务
-![alt text](局部截取_20260427_214046.png)
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E4%B8%8A%E6%8A%A5%E7%89%88%E6%9C%AC%E5%8F%B7.png" width="100%" height="100%" alt="版本号上报">
+</div>
+### 4.2 检测升级任务
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E6%A3%80%E6%B5%8B%E5%8D%87%E7%BA%A7%E4%BB%BB%E5%8A%A1.png" width="100%" height="100%" alt="检测升级任务">
+</div>
 ### 4.4 分片接收
-![alt text](局部截取_20260427_214121.png)
-### 4.5 断电续传
-
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E6%89%B9%E9%87%8F%E5%8D%87%E7%BA%A7.png" width="100%" height="100%" alt="批量升级">
+</div>
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%88%86%E7%89%87%E4%B8%8B%E8%BD%BD.png" width="100%" height="100%" alt="分片接收">
+</div>
+### 4.5 断点续传
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E6%96%AD%E7%82%B9%E7%BB%AD%E4%BC%A01.png" width="100%" height="100%" alt="断点续传1">
+</div>
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E6%96%AD%E7%82%B9%E7%BB%AD%E4%BC%A02.png" width="100%" height="100%" alt="断点续传2">
+</div>
+### 4.6 结果
+<div style="text-align: center;">
+    <img src="" width="100%" height="100%" alt="断点续传2">
+</div>
+<div style="text-align: center;">
+    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%8D%87%E7%BA%A7%E6%88%90%E5%8A%9F.png" width="100%" height="100%" alt="升级成功">
+</div>
 
 **注意**
 - **差分升级用到了旧固件和差分固件两个输入来源，旧固件直接读取 mcu 内部 flash 的活动分区，差分固件则是本地/远程下载来的。因此，进行差分升级的时候，务必要保证 mcu 内部 flash 的活动分区运行的是旧固件，要不然差分还原的结果是错的，得到的新固件也是运行不起来的。**
