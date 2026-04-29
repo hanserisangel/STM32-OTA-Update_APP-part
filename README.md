@@ -3,13 +3,13 @@
 ----
 
 ## 1. 项目简介
-本项目是一个基于 **STM32F407ZGT6** 的 OTA 远程升级的 APP 部分，需与我的另一个[Bootloader项目](https://github.com/hanserisangel/STM32-OTA-Update_Bootloader-part)搭配使用，共同实现完整的全量/差分固件升级流程。
+本项目是一个基于 **STM32F407ZGT6** 的 OTA 远程升级的 APP 部分，需与我的另一个[Bootloader 项目](https://github.com/hanserisangel/STM32-OTA-Update_Bootloader-part)搭配使用，共同实现完整的全量/差分固件升级流程。
 
 核心功能如下：
-- ✅ **FreeRTOS任务化架构**：将 OTA 升级作为独立任务实现，不阻塞主业务流程，方便移植与扩展。
-- ✅ **HTTP固件接收**：通过 ESP32-C3 模块的 AT 指令与 OneNET 服务器通信，基于 UART 空闲中断 + DMA + RingBuffer 实现高效、无阻塞的数据收发。
+- ✅ **FreeRTOS 任务化架构**：将 OTA 升级作为独立任务实现，不阻塞主业务流程，方便移植与扩展。
+- ✅ **HTTP 固件接收**：通过 ESP32-C3 模块的 AT 指令与 OneNET 服务器通信，基于 UART 空闲中断 + DMA + RingBuffer 实现高效、无阻塞的数据收发。
 - ✅ **断点续传**：固件接收进度实时记录在 W25Q64 中，断电或复位后可从中断处继续接收，无需从头开始传输。
-- ✅ **外部Flash优化**：内置磨损均衡、垃圾回收与掉电保护机制，通过分块+二分查找算法加速断电后数据重建，提供类文件系统的可靠存储体验。
+- ✅ **外部 Flash 优化**：内置**磨损均衡、垃圾回收、掉电保护**，通过**二分查找维护扇区有序性**，提升断电后数据重建效率，提供类文件系统的可靠存储体验。
 - ✅ **差分升级支持**：可配合 Bootloader 的 HPatchLite + tinyuz 方案，实现增量升级，大幅减少升级包体积与传输时间。
 
 ### 1.1 ONENET 服务器
@@ -17,59 +17,61 @@
 
 1. **创建设备**
 
-- 先创建产品
-    <div style="text-align: center;">
-        <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%88%9B%E5%BB%BA%E4%BA%A7%E5%93%81.png" width="100%" height="100%" alt="创建产品">
-    </div>
+    - 先创建产品
+        <div style="text-align: center;">
+            <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%88%9B%E5%BB%BA%E4%BA%A7%E5%93%81.png" width="100%" height="100%" alt="创建产品">
+        </div>
+    
+    - 然后再创建设备
+        <div style="text-align: center;">
+            <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%88%9B%E5%BB%BA%E8%AE%BE%E5%A4%87.png" width="100%" height="100%" alt="创建设备">
+        </div>
 
-- 然后再创建设备
-    <div style="text-align: center;">
-        <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%88%9B%E5%BB%BA%E8%AE%BE%E5%A4%87.png" width="100%" height="100%" alt="创建设备">
-    </div>
+    > **关键参数**
+    - Product_ID：产品 ID
+        <div style="text-align: center;">
+            <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E4%BA%A7%E5%93%81ID.png" width="100%" height="100%" alt="产品 ID">
+        </div>
+    - Device_ID：设备 ID（你创建设备时起的名字）
+        <div style="text-align: center;">
+            <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E8%AE%BE%E5%A4%87ID.png" width="100%" height="100%" alt="设备 ID">
+        </div>
+    - 设备密钥
+        <div style="text-align: center;">
+            <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E8%BF%9B%E5%85%A5%E8%AE%BE%E5%A4%87%E8%AF%A6%E6%83%85.png" width="100%" height="100%" alt="进入设备详情">
+        </div>
+        <div style="text-align: center;">
+            <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%AF%86%E9%92%A5%E4%BF%A1%E6%81%AF.png" width="100%" height="100%" alt="密钥信息">
+        </div>
 
-> **关键参数**
-- Product_ID：产品 ID
+    > **Token 的生成**
+    
+    利用[官方工具](https://open.iot.10086.cn/doc/aiot/fuse/detail/1487)生成，这里选设备级鉴权，把之前获得的 3 个关键参数填写到对应位置。需要说明的是`et`怎么获取，`et`是一个未来时间的时间戳，你可以使用一个时间戳转换网站获取，记住，一定要是未来的时间，到 2050 年都没事。(下图截取自 ONENET 官方文档)
     <div style="text-align: center;">
-        <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E4%BA%A7%E5%93%81ID.png" width="100%" height="100%" alt="产品 ID">
+        <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E8%8E%B7%E5%8F%96token.png" width="70%" height="70%" alt="获取 Token">
     </div>
-- Device_ID：设备 ID（你创建设备时起的名字）
-    <div style="text-align: center;">
-        <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E8%AE%BE%E5%A4%87ID.png" width="100%" height="100%" alt="设备 ID">
-    </div>
-- 设备密钥
-    <div style="text-align: center;">
-        <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E8%BF%9B%E5%85%A5%E8%AE%BE%E5%A4%87%E8%AF%A6%E6%83%85.png" width="100%" height="100%" alt="进入设备详情">
-    </div>
-    <div style="text-align: center;">
-        <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%AF%86%E9%92%A5%E4%BF%A1%E6%81%AF.png" width="100%" height="100%" alt="密钥信息">
-    </div>
-
-> **Token 的生成**
-
-利用[官方工具](https://open.iot.10086.cn/doc/aiot/fuse/detail/1487)生成，这里选设备级鉴权，把之前获得的 3 个关键参数填写到对应位置。需要说明的是`et`怎么获取，`et`是一个未来时间的时间戳，你可以使用一个时间戳转换网站获取，记住，一定要是未来的时间，到 2050 年都没事。(下图截取自 ONENET 官方文档)
-<div style="text-align: center;">
-    <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E8%8E%B7%E5%8F%96token.png" width="80%" height="80%" alt="获取 Token">
-</div>
-
-生成以后可以把这些参数复制到程序中`OTA.h`文件的宏定义中，如下所示：
-```c
-#define Product_ID "qvt81NOIxc"
-#define Device_ID "microwave"
-#define Token "version=2018-10-31&res=products%2Fqvt81NOIxc%2Fdevices%2Fmicrowave&et=1802007194&method=md5&sign=cI8Xo%2BL9Ef3vNNTRtYNufQ%3D%3D"
-```
+    
+    生成以后可以把这些参数复制到程序中`OTA.h`文件的宏定义中，如下所示：
+    ```c
+    #define Product_ID "qvt81NOIxc"
+    #define Device_ID "microwave"
+    #define Token "version=2018-10-31&res=products%2Fqvt81NOIxc%2Fdevices%2Fmicrowave&et=1802007194&method=md5&sign=cI8Xo%2BL9Ef3vNNTRtYNufQ%3D%3D"
+    ```
 2. **OTA 升级（增值服务）**
 
-创建升级包：
-    <div style="text-align: center;">
-        <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%88%9B%E5%BB%BA%E5%8D%87%E7%BA%A7%E5%8C%85.png" width="100%" height="100%" alt="创建升级包">
-    </div>
-    <div style="text-align: center;">
-        <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E6%B7%BB%E5%8A%A0%E5%8D%87%E7%BA%A7%E5%8C%85.png" width="100%" height="100%" alt="添加升级包">
-    </div>
-    <div style="text-align: center;">
-        <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E8%B7%B3%E8%BF%87%E9%AA%8C%E8%AF%81.png" width="100%" height="100%" alt="跳过验证">
-    </div>
-验证升级就直接跳过，没有必要执行这一步
+    - 创建升级包：
+        <div style="text-align: center;">
+            <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%88%9B%E5%BB%BA%E5%8D%87%E7%BA%A7%E5%8C%85.png" width="100%" height="100%" alt="创建升级包">
+        </div>
+    - 添加升级包
+        <div style="text-align: center;">
+            <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E6%B7%BB%E5%8A%A0%E5%8D%87%E7%BA%A7%E5%8C%85.png" width="100%" height="100%" alt="添加升级包">
+        </div>
+    - 跳过验证升级
+        <div style="text-align: center;">
+            <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E8%B7%B3%E8%BF%87%E9%AA%8C%E8%AF%81.png" width="100%" height="100%" alt="跳过验证">
+        </div>
+
 - **不管上传的是差分包还是全量包，在添加 OTA 升级任务的时候都要选择完整包，不用管差分包选项**
 - **本项目中这里的差分包或者全量包并不是由 keil5 直接生成的 bin 固件，而是经过打包后的固件包，具体如下小节所示**
 
@@ -112,8 +114,8 @@
 
 #### 强制要求
 以下两点是运行本项目的硬性前提：
-1.  **MCU内部Flash空间**：必须大于 `Bootloader大小 + 2 × APP分区大小`（本项目当前Bootloader体积约66KB，裁剪功能可进一步减小体积；APP 分区大小可根据实际需求调整）。
-2.  **外部Flash**：必须搭载SPI Flash（本项目使用W25Q64），用于缓存固件升级包和其他关键参数。
+1.  **MCU 内部 Flash 空间**：必须大于 `Bootloader大小 + 2 × APP分区大小`（本项目当前 Bootloader 体积约 66KB，裁剪功能可进一步减小体积；APP 分区大小可根据实际需求调整）。
+2.  **外部 Flash**：必须搭载 SPI Flash（本项目使用 W25Q64），用于缓存固件升级包和其他关键参数。
 
 ---
 
@@ -126,7 +128,7 @@
     <div style="text-align: center;">
         <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%90%91%E9%87%8F%E8%A1%A8%E6%98%A0%E5%B0%84.png" width="80%" height="80%" alt="向量表映射">
     </div>
-修改文件中的这个值，完成映射。这里我写 0x20000 是因为这是 A 分区的 APP 程序，根据第 5 节的分区表， A 分区在 128KB 开始的区域；如果是 B 分区的 APP程序，这里要填 0x80000，因为 B 分区在 128+384KB 开始的区域
+修改文件中的这个值，完成映射。这里我写 `0x20000` 是因为这是 A 分区的 APP 程序，根据第 5 节的分区表， A 分区在 128KB 开始的区域；如果是 B 分区的 APP 程序，这里要填 `0x80000`，因为 B 分区在 128+384KB 开始的区域
 
 如果使用 keil5 直接下载 A/B 分区的应用程序，还需要修改下图的值
     <div style="text-align: center;">
@@ -175,7 +177,7 @@ Authorization:{Token}
 Host:iot-api.heclouds.com
 \r\n
 ```
-ONENET 服务器需要设备发送报文询问是否有升级任务，之后可以用软件定时器每个一段时间发送这个报文询问是否用升级任务。
+ONENET 服务器需要设备发送报文询问是否有升级任务，以后可以用软件定时器每个一段时间发送这个报文询问是否有升级任务。
 
 如果有升级任务，服务器的应答报文：
 ```http
@@ -191,9 +193,10 @@ Pragma: no-cache
 
 {"code":0,"msg":"succ","data":{"target":"{创建升级任务时你填的版本号}","tid":1309304,"size":15648,"md5":"0d359d2e5a810712fd667d1ee3495ad6","status":1,"type":1},"request_id":"dc69a00d391749febdf221181abd7708"}
 ```
-`target`：这个升级任务的固件版本号，设备端需要获取写入 W25Q64
-`tid`：这个升级任务的 ID，之后下载固件的时候需要用。
-`size`：这个升级任务的固件大小，设备端需要获取写入 W25Q64
+
+- `target`：这个升级任务的固件版本号，设备端需要获取写入 W25Q64
+- `tid`：这个升级任务的 ID，之后下载固件的时候需要用。
+- `size`：这个升级任务的固件大小，设备端需要获取写入 W25Q64
 
 3. **分片下载**
 ```http
@@ -203,7 +206,7 @@ Authorization:{Token}
 host:iot-api.heclouds.com
 Range:0-511
 ```
-`Range`：这个字段是表示本轮设备端请求的固件范围。比如一个固件1024B，那么设备端第一次发送`Range:0-511`，第二次发送`Range:512-1023`，分两次下载完固件。
+`Range`：这个字段是表示本轮设备端请求的固件范围。比如一个固件 1024B，那么设备端第一次发送`Range:0-511`，第二次发送`Range:512-1023`，分两次下载完固件。
 
 服务器应答报文：
 ```http
@@ -258,7 +261,7 @@ bool OTA_ConfirmBootSuccess(void)
 APP 固件程序需要在程序一开始向 W25Q64 写入`OTA_Info.OTA_area = NORMAL`，下次重启时才不会进行回滚。
 
 ### 3.5 断点续传
-接收固件的过程中，如果出现了断电/复位的情况，当设备恢复运行后会接着上次中断的地方继续接收固件。
+在固件接收过程中，若出现断电或复位，设备恢复后可从上次中断位置继续接收，无需从头开始。该功能将下载进度持久化到 W25Q64，并实现了**磨损均衡、掉电保护、垃圾回收**三大机制。
 
 #### 3.5.1 flash 磨损均衡
 
@@ -309,7 +312,7 @@ APP 固件程序需要在程序一开始向 W25Q64 写入`OTA_Info.OTA_area = NO
 
 **注意**
 - **差分升级用到了旧固件和差分固件两个输入来源，旧固件直接读取 mcu 内部 flash 的活动分区，差分固件则是本地/远程下载来的。因此，进行差分升级的时候，务必要保证 mcu 内部 flash 的活动分区运行的是旧固件，要不然差分还原的结果是错的，得到的新固件也是运行不起来的。**
-- **一定要明确升级的新固件是运行在A区还是B区的，因为中断向量表的映射不一样。如果你升级的固件是A区的，但是被下载进B区了，那程序就运行不起来**
+- **一定要明确升级的新固件是运行在 A 区还是 B 区的，因为中断向量表的映射不一样。如果你升级的固件是 A 区的，但是被下载进 B 区了，那程序就运行不起来**
 
 ---
 
@@ -359,8 +362,8 @@ APP 固件程序需要在程序一开始向 W25Q64 写入`OTA_Info.OTA_area = NO
     </tr>
     <tr>
         <td style="text-align:center">16KB</td>
-        <td style="text-align:center">64KB</td>
-        <td style="text-align:center">48KB</td>
+        <td style="text-align:center">0x10000</td>
+        <td style="text-align:center">1008KB</td>
         <td style="text-align:center">APP断点续传的进度</td>
         <td style="text-align:center">不定</td>
         <td style="text-align:center">&#9989</td>
@@ -369,7 +372,7 @@ APP 固件程序需要在程序一开始向 W25Q64 写入`OTA_Info.OTA_area = NO
         <td style="text-align:center">0x10000</td>
         <td style="text-align:center">0X70000</td>
         <td style="text-align:center">384KB</td>
-        <td style="text-align:center">固件包</td>
+        <td style="text-align:center">加密固件</td>
         <td style="text-align:center">固件大小</td>
         <td style="text-align:center">&#10062</td>
     </tr>
