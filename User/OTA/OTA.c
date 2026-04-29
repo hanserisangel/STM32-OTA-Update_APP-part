@@ -495,7 +495,7 @@ void OTA_Process(void)
 					if(resume_offset >= OTA_Info.FileSize)	
 					{
 						resume_offset = 0U;
-						ResumeLog_WriteProgressForceForTask(task_tag, OTA_Info.FileSize, 0U);
+						ResumeLog_WriteProgress(task_tag, OTA_Info.FileSize, 0U, true);
 					}
 				}
 				else
@@ -512,7 +512,7 @@ void OTA_Process(void)
 					}
 					W25Q64_EraseSector(OTA_META_ADDR / W25Q64_SECTOR_SIZE);
 					W25Q64_EraseSector(OTA_HDR_ADDR / W25Q64_SECTOR_SIZE);
-					ResumeLog_WriteProgressForceForTask(task_tag, OTA_Info.FileSize, 0U);
+					ResumeLog_WriteProgress(task_tag, OTA_Info.FileSize, 0U, true);
 				}
 
 				// 尝试从续传偏移量恢复 OTA 包接收上下文，如果恢复失败，说明续传记录无效，需要擦除 OTA 相关的存储区域，并重置续传状态
@@ -525,7 +525,7 @@ void OTA_Process(void)
 					}
 					W25Q64_EraseSector(OTA_META_ADDR / W25Q64_SECTOR_SIZE);
 					W25Q64_EraseSector(OTA_HDR_ADDR / W25Q64_SECTOR_SIZE);
-					ResumeLog_WriteProgressForceForTask(task_tag, OTA_Info.FileSize, 0U);
+					ResumeLog_WriteProgress(task_tag, OTA_Info.FileSize, 0U, true);
 					resume_offset = 0U;
 					OTA_PkgRxReset(&rx_ctx);
 				}
@@ -549,7 +549,7 @@ void OTA_Process(void)
 						end = OTA_Info.FileSize - 1U;
 					expect_len = end - start + 1U;
 
-					snprintf(small_buf, sizeof(small_buf), "%lu-%lu\r\n", (unsigned long)start, (unsigned long)end);
+					snprintf(small_buf, sizeof(small_buf), "%lu-%lu", (unsigned long)start, (unsigned long)end);
 					snprintf(tx_buffer, sizeof(tx_buffer),
 						"GET /fuse-ota/%s/%s/%s/download HTTP/1.1\r\n"
 						"Content-Type:application/json\r\n"
@@ -577,7 +577,7 @@ void OTA_Process(void)
 						{
 							LOG_E("OTA package route write failed");
 							OTA_State = OTA_END;
-							ResumeLog_WriteProgressForceForTask(task_tag, OTA_Info.FileSize, rx_ctx.total_received);
+							ResumeLog_WriteProgress(task_tag, OTA_Info.FileSize, rx_ctx.total_received, true);
 							break;
 						}
 
@@ -586,25 +586,25 @@ void OTA_Process(void)
 
 						if(!hdr_forced && rx_ctx.hdr_received == OTA_HDR_SIZE)
 						{
-							ResumeLog_WriteProgressForceForTask(task_tag, OTA_Info.FileSize, rx_ctx.total_received);
+							ResumeLog_WriteProgress(task_tag, OTA_Info.FileSize, rx_ctx.total_received, true);
 							hdr_forced = true;
 						}
 
 						if(!meta_forced && rx_ctx.meta_received == OTA_META_LEN)
 						{
-							ResumeLog_WriteProgressForceForTask(task_tag, OTA_Info.FileSize, rx_ctx.total_received);
+							ResumeLog_WriteProgress(task_tag, OTA_Info.FileSize, rx_ctx.total_received, true);
 							meta_forced = true;
 						}
 
 						if((chunk_count % OTA_PROGRESS_SAVE_EVERY_CHUNKS) == 0U)
 						{
-							ResumeLog_WriteProgressForTask(task_tag, OTA_Info.FileSize, rx_ctx.total_received);
+							ResumeLog_WriteProgress(task_tag, OTA_Info.FileSize, rx_ctx.total_received, false);
 						}
 					}
 					else
 					{
 						OTA_State = OTA_END;
-						ResumeLog_WriteProgressForceForTask(task_tag, OTA_Info.FileSize, rx_ctx.total_received);
+						ResumeLog_WriteProgress(task_tag, OTA_Info.FileSize, rx_ctx.total_received, true);
 						break;
 					}
 				}
@@ -621,7 +621,7 @@ void OTA_Process(void)
 
 				OTA_Info.OTA_Flag = OTA_FLAG;
 				W25Q64_WriteOTAInfo();
-				ResumeLog_WriteProgressForceForTask(task_tag, OTA_Info.FileSize, OTA_Info.FileSize);
+				ResumeLog_WriteProgress(task_tag, OTA_Info.FileSize, OTA_Info.FileSize, true);
 
 				vTaskDelay(pdMS_TO_TICKS(500));
 				NVIC_SystemReset();
