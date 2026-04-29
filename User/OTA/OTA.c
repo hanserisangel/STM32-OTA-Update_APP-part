@@ -164,6 +164,13 @@ static bool OTA_ParseHeader(const uint8_t *buf, OTA_Header_t *hdr)
 	return true;
 }
 
+/**
+ * @brief  处理接收到的 OTA 包数据，将数据写入 W25Q64，并更新接收上下文。函数会根据接收的总字节数和 OTA 包结构自动切换接收阶段，确保数据正确存储以供后续处理。
+ * @param  ctx: 指向 OTA 包接收上下文结构体的指针，函数会根据该上下文的状态来处理接收到的数据
+ * @param  src: 指向接收到的数据缓冲区的指针，数据长度由 len 参数指定
+ * @param  len: 接收到的数据长度，单位为字节
+ * @retval true 数据处理成功；false 数据处理失败
+ */
 static bool OTA_PkgRouteWrite(OTA_PkgRxCtx_t *ctx, const uint8_t *src, uint32_t len)
 {
 	while(len > 0U)

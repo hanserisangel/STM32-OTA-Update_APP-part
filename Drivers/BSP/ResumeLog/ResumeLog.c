@@ -43,7 +43,7 @@ typedef struct      // 日志记录结构体
     uint32_t seq;       // 全局递增的序列号，用于区分新旧记录和恢复进度
 
     uint32_t value;     // 记录的值
-    uint32_t task_tag;  // 固件标签
+    uint32_t task_tag;  // 固件的版本号哈希，用于区分不同的任务
     uint32_t total_size; // 总大小
 
     uint32_t crc;
@@ -316,6 +316,7 @@ static void ResumeLog_ScanSectorRecords(uint32_t sector_id)
 
         if (ResumeLog_IsValidRecord(&rec))
         {
+            // 更新全局最新记录状态
             if (!g_state.latest_valid || rec.seq > g_state.latest_seq)
             {
                 g_state.latest_valid = true;
@@ -346,11 +347,13 @@ static void ResumeLog_Scan(void)
         uint32_t base = ResumeLog_SectorBaseAddr(sector_id);
         W25Q64_ReadBytes(base, (uint8_t *)&hdr, sizeof(hdr));
 
+        // 如果扇区头全为 0xFF，表示该扇区未使用，跳过扫描记录
         if (ResumeLog_IsBlank((const uint8_t *)&hdr, sizeof(hdr)))
         {
             continue;
         }
 
+        // 如果扇区头无效，表示该扇区数据损坏，跳过扫描记录
         if (!ResumeLog_IsValidSectorHeader(&hdr))
         {
             continue;
@@ -368,8 +371,8 @@ static void ResumeLog_Scan(void)
         ResumeLog_ScanSectorRecords(sector_id);
     }
 
-    // 根据扫描结果设置当前写入扇区和地址，如果没有任何有效扇区，则 current_sector_id 保持为 -1，表示需要打开新扇区
-    g_state.current_sector_id = -1;
+    // 根据扫描结果设置当前写入扇区和地址
+    g_state.current_sector_id = -1; // 如果没有任何有效扇区，则 current_sector_id 保持为 -1，表示需要打开新扇区
     for (int32_t i = (int32_t)g_state.ordered_count - 1; i >= 0; --i)
     {
         uint32_t sid = g_state.ordered_sector_ids[i];
@@ -507,6 +510,14 @@ static bool ResumeLog_EnsureWritableSector(void)
     return ResumeLog_ReclaimOldestSector();
 }
 
+/**
+ * @brief  写入指定任务的进度记录，成功写入后会更新全局最新记录状态。
+ * @param  task_tag: 任务标签，用于区分不同的任务
+ * @param  total_size: 任务的总大小，用于区分同一任务的不同执行实例
+ * @param  value: 输出参数，用于返回找到的记录的值
+ * @param  seq: 输出参数，用于返回找到的记录的序列号
+ * @retval true 成功找到符合条件的记录；false 未找到符合条件的记录
+ */
 static bool ResumeLog_WriteRecordToCurrent(uint32_t value, uint32_t seq, uint32_t task_tag, uint32_t total_size)
 {
     ResumeLog_Record_t rec;
@@ -568,6 +579,14 @@ void ResumeLog_Init(void)
     g_state.initialized = true;
 }
 
+/**
+ * @brief  读取指定任务的最新进度记录
+ * @param  task_tag: 任务标签，用于区分不同的任务
+ * @param  total_size: 任务的总大小，用于区分同一任务的不同执行实例
+ * @param  value: 输出参数，用于返回找到的记录的值
+ * @param  seq: 输出参数，用于返回找到的记录的序列号
+ * @retval true 成功找到符合条件的记录；false 未找到符合条件的记录
+ */
 bool ResumeLog_ReadLatestForTask(uint32_t task_tag, uint32_t total_size, uint32_t *value, uint32_t *seq)
 {
     int32_t start_idx;
@@ -626,6 +645,14 @@ bool ResumeLog_ReadLatestForTask(uint32_t task_tag, uint32_t total_size, uint32_
     return false;
 }
 
+/**
+ * @brief  写入指定任务的进度记录，成功写入后会更新全局最新记录状态。
+ * @param  task_tag: 任务标签，用于区分不同的任务
+ * @param  total_size: 任务的总大小，用于区分同一任务的不同执行实例
+ * @param  value: 输出参数，用于返回找到的记录的值
+ * @param  force: 是否强制写入新记录以更新进度，即使新记录的 value 没有明显增加
+ * @retval true 成功找到符合条件的记录；false 未找到符合条件的记录
+ */
 bool ResumeLog_WriteProgress(uint32_t task_tag, uint32_t total_size, uint32_t value, bool force)
 {
     bool same_task = false;
@@ -635,6 +662,7 @@ bool ResumeLog_WriteProgress(uint32_t task_tag, uint32_t total_size, uint32_t va
         ResumeLog_Init();
     }
 
+    // 如果当前最新记录是同一任务且总大小相同的记录，则根据 value 和 force 参数决定是否写入新记录以更新进度
     if (g_state.latest_valid)
     {
         same_task = (g_state.latest_task_tag == task_tag) && (g_state.latest_total_size == total_size);
@@ -654,11 +682,13 @@ bool ResumeLog_WriteProgress(uint32_t task_tag, uint32_t total_size, uint32_t va
         }
     }
 
+    // 确保有可写的扇区，如果没有则尝试回收最旧的扇区
     if (!ResumeLog_EnsureWritableSector())
     {
         return false;
     }
 
+    // 写入新记录以更新进度
     return ResumeLog_WriteRecordToCurrent(
         value,
         g_state.latest_valid ? (g_state.latest_seq + 1U) : 0U,
