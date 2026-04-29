@@ -304,6 +304,7 @@ APP 固件程序需要在程序一开始向 W25Q64 写入`OTA_Info.OTA_area = NO
 <div style="text-align: center;">
     <img src="https://github.com/hanserisangel/STM32-OTA-Update_APP-part/blob/master/image/%E5%8D%87%E7%BA%A7%E6%88%90%E5%8A%9F.png" width="90%" height="90%" alt="升级成功">
 </div>
+
 本实例是通过 A 区的 APP 下载固件，并把固件经过 W25Q64 后写入 APP_B 区，所以图片中是从 B 区开始执行。因此，我上传上去的固件包的中断向量表偏移是`0x80000`；如果是反过来，通过 B 区的 APP 下载固件，那么上传上去的固件包的中断向量表偏移是`0x20000`。另外，进度条没满不用在意，因为最后一段不满 512 字节的部分没有串口打印出来。
 
 **注意**
